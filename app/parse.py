@@ -70,7 +70,7 @@ def parse_single_quote(quote: Tag) -> Quote:
     )
     author_url = quote.select_one('a[href*="/author/"]')
     if author_url:
-        author_url = f"https://quotes.toscrape.com{author_url["href"]}" # noqa
+        author_url = f"https://quotes.toscrape.com{author_url['href']}" # noqa
         response = requests.get(author_url)
         if response.status_code == 200:
             author_soup = BeautifulSoup(response.content, "html.parser")
