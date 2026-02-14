@@ -51,7 +51,7 @@ def parse_author(author_page_soup: Tag) -> Author:
     )
 
 
-def parse_single_quote(quote: Tag) -> Quote:
+def parse_single_quote(quote: Tag, session: requests.Session) -> Quote:
     quote_text = quote.select_one(".text").text
     quote_author = quote.select_one(".author").text
     quote_tags = [tag.text for tag in quote.select(".tags a")]
@@ -72,7 +72,7 @@ def parse_single_quote(quote: Tag) -> Quote:
     author_url = quote.select_one('a[href*="/author/"]')
     if author_url:
         author_url = f"https://quotes.toscrape.com{author_url['href']}"  # noqa
-        response = requests.get(author_url)
+        response = session.get(author_url)
         if response.status_code == 200:
             author_soup = BeautifulSoup(response.content, "html.parser")
             author_info = parse_author(author_page_soup=author_soup)
@@ -87,12 +87,12 @@ def parse_single_quote(quote: Tag) -> Quote:
     )
 
 
-def get_page_quotes(page_soup: Tag) -> list[Quote]:
+def get_page_quotes(page_soup: Tag, session: requests.Session) -> list[Quote]:
     quotes = page_soup.select(".quote")
-    return [parse_single_quote(quote) for quote in quotes]
+    return [parse_single_quote(quote, session) for quote in quotes]
 
 
-def page_generator() -> Generator[BeautifulSoup, None, None]:
+def page_generator() -> Generator[tuple[BeautifulSoup, requests.Session], None, None]:
     next_page = 1
     with requests.Session() as session:
         while True:
@@ -101,15 +101,15 @@ def page_generator() -> Generator[BeautifulSoup, None, None]:
             soup = BeautifulSoup(response.content, "html.parser")
             if not soup.select(".quote"):
                 return
-            yield soup
+            yield soup, session
             next_page += 1
             time.sleep(0.1)
 
 
 def get_quotes() -> list[Quote]:
     quotes = list()
-    for page_soup in page_generator():
-        quotes.extend(get_page_quotes(page_soup))
+    for page_soup, session in page_generator():
+        quotes.extend(get_page_quotes(page_soup, session))
     return quotes
 
 
