@@ -1,5 +1,4 @@
 import dataclasses
-from datetime import time
 from pathlib import Path
 from typing import Generator
 
@@ -34,11 +33,18 @@ authors_cache = {}
 
 
 def parse_author(author_page_soup: Tag) -> Author:
-    author_name = author_page_soup.select_one(".author-title").text
-    author_born_date = author_page_soup.select_one(".author-born-date").text
-    author_born_location = author_page_soup.select_one(
-        ".author-born-location"
-    ).text.replace("in", "", 1)
+    author_name = author_page_soup.select_one(".author-title")
+    author_name = author_name.text.strip() if author_name else None
+    author_born_date = author_page_soup.select_one(".author-born-date")
+    author_born_date = (
+        author_born_date.text.strip() if author_born_date else None
+    )
+    author_born_location = author_page_soup.select_one(".author-born-location")
+    author_born_location = (
+        author_born_location.text.replace("in", "", 1)
+        if author_born_location else None
+    )
+
     author_description = author_page_soup.select_one(
         ".author-description"
     ).text.lstrip()[:30]
@@ -92,7 +98,9 @@ def get_page_quotes(page_soup: Tag, session: requests.Session) -> list[Quote]:
     return [parse_single_quote(quote, session) for quote in quotes]
 
 
-def page_generator() -> Generator[tuple[BeautifulSoup, requests.Session], None, None]:
+def page_generator() -> (
+    Generator[tuple[BeautifulSoup, requests.Session], None, None]
+):
     next_page = 1
     with requests.Session() as session:
         while True:
