@@ -1,5 +1,5 @@
 import dataclasses
-from datetime import date
+from datetime import time
 from pathlib import Path
 from typing import Generator
 
@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup, Tag
 
 import requests
 import csv
+import time
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,7 +25,7 @@ class Quote:
     text: str
     author: str
     tags: list[str]
-    born_date: date | None = None
+    born_date: str | None = None
     born_location: str | None = None
     description: str | None = None
 
@@ -70,7 +71,7 @@ def parse_single_quote(quote: Tag) -> Quote:
     )
     author_url = quote.select_one('a[href*="/author/"]')
     if author_url:
-        author_url = f"https://quotes.toscrape.com{author_url['href']}" # noqa
+        author_url = f"https://quotes.toscrape.com{author_url['href']}"  # noqa
         response = requests.get(author_url)
         if response.status_code == 200:
             author_soup = BeautifulSoup(response.content, "html.parser")
@@ -95,13 +96,14 @@ def page_generator() -> Generator[BeautifulSoup, None, None]:
     next_page = 1
     with requests.Session() as session:
         while True:
-            request_url = f"https://quotes.toscrape.com/page/{next_page}/" # noqa
+            request_url = f"https://quotes.toscrape.com/page/{next_page}/"  # noqa
             response = session.get(url=request_url)
             soup = BeautifulSoup(response.content, "html.parser")
             if not soup.select(".quote"):
                 return
             yield soup
             next_page += 1
+            time.sleep(0.1)
 
 
 def get_quotes() -> list[Quote]:
@@ -112,7 +114,7 @@ def get_quotes() -> list[Quote]:
 
 
 def write_quotes_to_file(output_csv_path: str, quotes: list[Quote]) -> None:
-    with open(output_csv_path, "w") as file_out:
+    with open(output_csv_path, "w", newline="") as file_out:
         writer = csv.writer(file_out)
         writer.writerow([field.name for field in dataclasses.fields(Quote)])
         writer.writerows([dataclasses.astuple(quote) for quote in quotes])
@@ -124,4 +126,4 @@ def main(output_csv_path: str) -> None:
 
 
 if __name__ == "__main__":
-    main(BASE_DIR / "result.csv")
+    main(str(BASE_DIR / "result.csv"))
